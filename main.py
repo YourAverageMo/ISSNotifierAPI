@@ -1,34 +1,46 @@
+from datetime import datetime
 from tkinter import *
 
 import requests
 
+MY_LAT = 61.507351
+MY_LNG = -0.127758
 
-def get_quote():
 
-    response = requests.get(url="https://api.kanye.rest/")
+def is_night():
+    parameters = {
+        "lat": MY_LAT,
+        "lng": MY_LNG,
+        "formatted": 0,
+    }
+
+    response = requests.get(
+        url="https://api.sunrise-sunset.org/json", params=parameters)
     response.raise_for_status()
-    data = response.json()
 
-    canvas.itemconfig(quote_text, text=data["quote"])
+    sun_data = response.json()
+    sunrise = int(sun_data["results"]["sunrise"].split("T")[1].split(":")[0])
+    sunset = int(sun_data["results"]["sunset"].split("T")[1].split(":")[0])
+    hour_now = datetime.now().hour
 
-    # Write your code here.
+    if sunrise >= hour_now >= sunset:
+        return True
 
 
-window = Tk()
-window.title("Kanye Says...")
-window.config(padx=50, pady=50)
+def is_iss_overhead():
+    response = requests.get(
+        url="http://api.open-notify.org/iss-now.json")
+    response.raise_for_status()
 
-canvas = Canvas(width=300, height=414)
-background_img = PhotoImage(file="background.png")
-canvas.create_image(150, 207, image=background_img)
-quote_text = canvas.create_text(150, 207, text="Kanye Quote Goes HERE", width=250, font=(
-    "Arial", 30, "bold"), fill="white")
-canvas.grid(row=0, column=0)
+    iss_pos = response.json()
+    iss_lat = float(iss_pos["iss_position"]["latitude"])
+    iss_lng = float(iss_pos["iss_position"]["longitude"])
 
-kanye_img = PhotoImage(file="kanye.png")
-kanye_button = Button(image=kanye_img, highlightthickness=0, command=get_quote)
-kanye_button.grid(row=1, column=0)
+    if MY_LAT-5 <= iss_lat <= MY_LAT + 5 and MY_LNG-5 <= iss_lng <= MY_LNG+5:
+        return True
 
-get_quote()
 
-window.mainloop()
+# below this is the part u put into a while loop using time.sleep(60) so the program keeps running once every min. im not doing that for obvious reasons.
+if is_iss_overhead() and is_night():
+    # insert email code here. im not doing it cuz of the reasons stated in previous project
+    pass
